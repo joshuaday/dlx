@@ -1,0 +1,6 @@
+*.exe
+*.userprefs
+*.pidb
+bin/
+
+
