@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 9.00
 # Visual Studio 2005
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "sudoku-solver", "sudoku-solver\sudoku-solver.csproj", "{E692F278-C653-4C02-B511-F11BCF65FD2C}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "dlx", "dlx\dlx.csproj", "{E692F278-C653-4C02-B511-F11BCF65FD2C}"
 EndProject
 Project("{9344bdbb-3e7f-41fc-a0dd-8665d75ee146}") = "Packages", "Packages.mdproj", "{F3CFBBAF-D514-4D06-8442-332D0353B452}"
 EndProject
