@@ -43,10 +43,6 @@ namespace PDS
 		
 		public DLX Mark(int column, int cost)
 		{
-			if (_O != null) {
-				throw new System.Exception("Cannot mark new cells after starting search");
-			}
-			
 			if (column < _insertColumn) {
 				// todo: relax this constraint
 				throw new System.Exception("Cells within a row must be marked in ascending order (i.e., left-to-right)");
@@ -85,10 +81,6 @@ namespace PDS
 				}
 			}
 			
-			
-			// _O = new Link[_nrows];
-			// ArrayList result = Search(0);
-			
 			foreach (ArrayList result in EnumerateSolutions()) {
 				foreach (Link row in _givens) {
 					result.Add(row.RowName);
@@ -101,106 +93,75 @@ namespace PDS
 		}
 		
 		private IEnumerable<ArrayList> EnumerateSolutions() {
-			_O = new Link[_nrows];
+			Link[] history = new Link[_nrows];
 			
 			int searchDepth = 0;
 			
 			// walk down the rows that cover the column we've selected;
 			// try taking the move represented by each one, one at a time,
-			// and see whether that leads to a solution.
+			// and see whether that leads to a solution.  This 
 			
 			ColumnHeader c;
 			Link row;
 			
-			Search:
+			while (true) {
+				// check whether we're at a solution
 				if (_root.Right == _root) {
 					ArrayList results = new ArrayList(searchDepth);
 					
 					// massage into a result!
 					for (int i = 0; i < searchDepth; i++) {
-						results.Add(_O[i].RowName);
+						results.Add(history[i].RowName);
 					}
 					
 					yield return results;
 				}
 				
+				// if we aren't at a solution yet, find the column (of those that haven't been covered yet) 
+				// that can be covered the fewest ways; since it must be covered eventually, it follows that
+				// we'll get less branching by trying to deal with this one first.
 				c = LeftmostSmallestColumn();
 				c.Cover();
 				
 				row = c.Down;
-				
-			NextRow:
-				if (row == c) {
+			
+				// here's an unintuitive bit: if the row we're looking at is a column header,
+				// we must have checked all the rows already for solutions and not found any (or yielded
+				// them).  So what we'll do is jump up to the previous search depth by popping the previous
+				// link off of history, and if that one's done (i.e., at the header), too, we'll keep
+				// ascending until we finally find one that isn't, or we'll break because we're done.
+				while (row == c) {
 					c.Uncover();
-					goto ReturnPoint;
+				
+					if (searchDepth == 0) {
+						// we've come back up to the top, which means we've tried every possibility
+						yield break;
+					}
+				
+					searchDepth--;
+					
+					row = history[searchDepth];
+					c = row.Column;
+					
+					for (Link j = row.Left; j != row; j = j.Left) {
+						j.Column.Uncover();
+					}
+					
+					row = row.Down;
 				}
 			
-				_O[searchDepth] = row;
+				// now we'll take the link represented by row, and we'll make the move it indicates --
+				// that is, we'll cover all the columns it has ones in, put it into our history, and continue our search.
+				history[searchDepth] = row;
 				
 				for (Link j = row.Right; j != row; j = j.Right) {
 					j.Column.Cover();
 				}
 				
 				searchDepth++;
-				goto Search;
-				
-			ReturnPoint:
-				searchDepth--;
-				if (searchDepth < 0) yield break;
-				
-				row = _O[searchDepth];
-				c = row.Column;
-				
-				for (Link j = row.Left; j != row; j = j.Left) {
-					j.Column.Uncover();
-				}
-				
-				row = row.Down;
-				goto NextRow;
+			}
 		}
 		
-		private ArrayList Search(int searchDepth) {
-			// this loop is "search" in Knuth's paper
-			
-			if (_root.Right == _root) {
-				ArrayList results = new ArrayList(searchDepth);
-				
-				// massage into a result!
-				for (int i = 0; i < searchDepth; i++) {
-					results.Add(_O[i].RowName);
-				}
-				
-				return results;
-			}
-			
-			ColumnHeader c = LeftmostSmallestColumn();
-			
-			c.Cover();
-			
-			for (Link row = c.Down; row != c; row = row.Down) {
-				_O[searchDepth] = row;
-				
-				for (Link j = row.Right; j != row; j = j.Right) {
-					j.Column.Cover();
-				}
-				
-				ArrayList result = Search(searchDepth + 1); // this should not actually be recursive; this actually maintains its own stack, so why bother?
-				if (result != null) {
-					// if we  yield  instead, we can actually enumerate all possible solutions!
-					return result;
-				}
-				
-				row = _O[searchDepth];
-				c = row.Column;
-				
-				for (Link j = row.Left; j != row; j = j.Left) {
-					j.Column.Uncover();
-				}
-			}
-			c.Uncover();
-			
-			return null;
-		}
 		
 		// Links and ColumnHeaders are used as plain data -- this is not, perhaps, ideal!
 		private class Link
@@ -228,18 +189,11 @@ namespace PDS
 
 		private void RequireRow()
 		{
-			if (_insertCursor == null) {
-				throw new System.Exception("You must mark at least one column before requiring a row"); // todo: relax this restriction
-			}
 			_givens.Add(_insertCursor);
 		}
 		
 		private void StartRow(object RowName)
 		{
-			if (_O != null) {
-				throw new System.Exception("Cannot insert new rows after starting search");
-			}
-			
 			_insertCursor = null;
 			_insertRowName = RowName;
 			_insertColumn = 0;
@@ -341,7 +295,6 @@ namespace PDS
 		ColumnHeader _root;
 		
 		// for the searching phase:
-		Link[] _O;
 		List<Link> _givens;
 		
 		// for the marking (i.e., insertion) phase:
