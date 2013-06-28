@@ -74,13 +74,6 @@ namespace PDS
 		}
 
 		public ArrayList Search() {
-			foreach (Link row in _givens) {
-				row.Column.Cover();
-				for (Link j = row.Right; j != row; j = j.Right) {
-					j.Column.Cover();
-				}
-			}
-			
 			foreach (ArrayList result in EnumerateSolutions()) {
 				foreach (Link row in _givens) {
 					result.Add(row.RowName);
@@ -92,8 +85,15 @@ namespace PDS
 			return null;
 		}
 		
-		private IEnumerable<ArrayList> EnumerateSolutions() {
+		public IEnumerable<ArrayList> EnumerateSolutions() {
 			Link[] history = new Link[_nrows];
+			
+			foreach (Link given in _givens) {
+				given.Column.Cover();
+				for (Link j = given.Right; j != given; j = j.Right) {
+					j.Column.Cover();
+				}
+			}
 			
 			int searchDepth = 0;
 			
@@ -101,8 +101,8 @@ namespace PDS
 			// try taking the move represented by each one, one at a time,
 			// and see whether that leads to a solution.  This 
 			
-			ColumnHeader c;
-			Link row;
+			ColumnHeader c = null;
+			Link row = null;
 			
 			while (true) {
 				// check whether we're at a solution
@@ -110,20 +110,29 @@ namespace PDS
 					ArrayList results = new ArrayList(searchDepth);
 					
 					// massage into a result!
+					foreach (Link given in _givens) {
+						results.Add(given.RowName);
+					}
+					
 					for (int i = 0; i < searchDepth; i++) {
 						results.Add(history[i].RowName);
 					}
 					
 					yield return results;
+					
+					c = _root;
+					row = c;
+					
+					c.Cover(); // just for bookkeeping; we'll uncover it promptly
+				} else {
+					// if we aren't at a solution yet, find the column (of those that haven't been covered yet) 
+					// that can be covered the fewest ways; since it must be covered eventually, it follows that
+					// we'll get less branching by trying to deal with this one first.
+					c = LeftmostSmallestColumn();
+					c.Cover();
+					
+					row = c.Down;
 				}
-				
-				// if we aren't at a solution yet, find the column (of those that haven't been covered yet) 
-				// that can be covered the fewest ways; since it must be covered eventually, it follows that
-				// we'll get less branching by trying to deal with this one first.
-				c = LeftmostSmallestColumn();
-				c.Cover();
-				
-				row = c.Down;
 			
 				// here's an unintuitive bit: if the row we're looking at is a column header,
 				// we must have checked all the rows already for solutions and not found any (or yielded

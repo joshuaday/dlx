@@ -61,6 +61,26 @@ namespace sudokusolver
 			}
 		}
 		
+		public IEnumerable<int> SolveAll() {
+			DLX solver = new DLX();
+
+			foreach (SudokuMove move in SudokuMove.AllMoves()) {
+				bool required = _givens[move.X, move.Y] == move.N + 1;
+				solver.AddRow(move, required);
+			}
+			
+			foreach (ArrayList answer in solver.EnumerateSolutions()) {
+				foreach (object r in answer) {
+					SudokuMove move = r as SudokuMove;
+					_solution[move.X, move.Y] = move.N + 1;
+				}
+				
+				yield return 1; // hack
+			}
+			
+			yield break;
+		}
+		
 		public void WriteSolution()
 		{
 			Console.WriteLine("Solution:");

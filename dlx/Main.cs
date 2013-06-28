@@ -11,10 +11,15 @@ namespace sudokusolver
 			
 			SamuraiSudokuBoard board = new SamuraiSudokuBoard(filename);
 			
-			board.Solve();
+			foreach (int i in board.SolveAll()) {
+				//Console.Clear();
+				Console.SetCursorPosition(0,0);
+				board.WriteSolution();
+				//Console.ReadKey();
+			}
 			
-			Console.Clear();
-			board.WriteSolution();
+			Console.ReadKey();
+			
 			
 			/*
 			KnightsTour tour = new KnightsTour();
@@ -22,7 +27,6 @@ namespace sudokusolver
 			tour.WriteSolution();
 			*/
 			
-			Console.ReadKey();
 			
 			
 		}
